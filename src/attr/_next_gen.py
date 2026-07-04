@@ -44,6 +44,7 @@ def define(
     field_transformer=None,
     match_args=True,
     force_kw_only=False,
+    collect_by_mro=True,
 ):
     r"""
     A class decorator that adds :term:`dunder methods` according to
@@ -381,7 +382,7 @@ def define(
             eq=eq,
             order=order,
             auto_detect=auto_detect,
-            collect_by_mro=True,
+            collect_by_mro=collect_by_mro,
             getstate_setstate=getstate_setstate,
             on_setattr=on_setattr,
             field_transformer=field_transformer,
