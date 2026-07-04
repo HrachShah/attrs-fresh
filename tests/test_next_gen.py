@@ -596,6 +596,7 @@ class TestDefineCollectByMro:
         @attrs.define(collect_by_mro=False) must not raise
         TypeError: define() got an unexpected keyword argument 'collect_by_mro'.
         """
+
         @attrs.define(collect_by_mro=False)
         class A:
             x: int = 1
@@ -642,14 +643,18 @@ class TestDefineCollectByMro:
 
         attr_names = [a.name for a in _attr.fields(C_attr)]
         define_names = [a.name for a in attrs.fields(C_define)]
-        assert attr_names == define_names == [
-            "a1",
-            "a2",
-            "b1",
-            "b2",
-            "c1",
-            "c2",
-        ]
+        assert (
+            attr_names
+            == define_names
+            == [
+                "a1",
+                "a2",
+                "b1",
+                "b2",
+                "c1",
+                "c2",
+            ]
+        )
 
     def test_define_collect_by_mro_default_is_true(self):
         """
