@@ -2570,6 +2570,36 @@ class Attribute:
         elif ca.type is not None:
             msg = f"Type annotation and type argument cannot both be present for '{name}'."
             raise ValueError(msg)
+
+        # `from_counting_attr` is also called with already-built `Attribute`
+        # instances (e.g. when a class is reconstructed from
+        # `attrs.fields(cls)` via `attrs.make_class`, see #1424). In that case
+        # `ca` is an `Attribute` and exposes the public `default`/`validator`/
+        # `converter` attributes rather than the `_default`/`_validator`/
+        # `_converter` internals of `_CountingAttr`.
+        if isinstance(ca, Attribute):
+            return cls(
+                name,
+                ca.default,
+                ca.validator,
+                ca.repr,
+                None,
+                ca.hash,
+                ca.init,
+                False,
+                ca.metadata,
+                type,
+                ca.converter,
+                kw_only if ca.kw_only is None else ca.kw_only,
+                ca.eq,
+                ca.eq_key,
+                ca.order,
+                ca.order_key,
+                ca.on_setattr,
+                ca.alias,
+                ca.alias_is_default,
+            )
+
         return cls(
             name,
             ca._default,

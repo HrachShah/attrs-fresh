@@ -1535,6 +1535,50 @@ class TestMakeClass:
 
         assert "C(a=1, b=2)" == repr(C())
 
+    def test_make_class_from_attrs_fields(self):
+        """
+        make_class can rebuild a class from attrs.fields() output, not only
+        fresh _CountingAttr / attr.ib() values.
+
+        https://github.com/python-attrs/attrs/issues/1424
+        """
+
+        @attr.s
+        class Source:
+            a = attr.ib(type=int)
+            b = attr.ib(
+                default="x", validator=attr.validators.instance_of(str)
+            )
+            c = attr.ib(
+                default=0,
+                converter=attr.converters.optional(int),
+            )
+
+        # Convert the source's _CountingAttr-derived fields into proper
+        # Attribute instances via make_class, then re-run make_class on those
+        # Attribute instances. The second pass previously failed with
+        # "'Attribute' object has no attribute '_default'".
+        rebuilt = attr.make_class(
+            "Rebuilt",
+            {f.name: f for f in attr.fields(Source)},
+        )
+
+        # Order is preserved end-to-end.
+        assert ["a", "b", "c"] == [a.name for a in attr.fields(rebuilt)]
+
+        # `a` has no default and the rest do, so call with positional a and
+        # rely on defaults to fill b/c. `7` for c is converted via int.
+        ri = rebuilt(5)
+        assert 5 == ri.a
+        assert "x" == ri.b
+        assert 0 == ri.c
+
+        ri = rebuilt(5, "hello")
+        assert "hello" == ri.b
+
+        ri = rebuilt(5, "hello", "7")
+        assert 7 == ri.c
+
     def test_generic_dynamic_class(self):
         """
         make_class can create generic dynamic classes.
