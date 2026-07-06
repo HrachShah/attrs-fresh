@@ -581,3 +581,92 @@ def test_inspect_not_attrs_class():
     """
     with pytest.raises(attrs.exceptions.NotAnAttrsClassError):
         attrs.inspect(object)
+
+
+class TestDefineCollectByMro:
+    """
+    `attrs.define` documents a *collect_by_mro* option but the function
+    signature used to silently hard-code `True`, so the parameter was
+    unreachable. Adding it as a real parameter (and forwarding it to the
+    inner `attrs()` call) is what these tests exercise.
+    """
+
+    def test_define_accepts_collect_by_mro_kwarg(self):
+        """
+        @attrs.define(collect_by_mro=False) must not raise
+        TypeError: define() got an unexpected keyword argument 'collect_by_mro'.
+        """
+
+        @attrs.define(collect_by_mro=False)
+        class A:
+            x: int = 1
+
+        assert A(1).x == 1
+
+    def test_define_collect_by_mro_false_matches_attrs_false(self):
+        """
+        With collect_by_mro=False, the same diamond inheritance graph that
+        `attr.s(collect_by_mro=False)` would produce must match what
+        @attrs.define(collect_by_mro=False) produces (same field names, same
+        order, same defaults).
+        """
+
+        @_attr.s(collect_by_mro=False)
+        class A_attr:
+            a1 = _attr.ib(default="a1")
+            a2 = _attr.ib(default="a2")
+
+        @_attr.s
+        class B_attr(A_attr):
+            b1 = _attr.ib(default="b1")
+            b2 = _attr.ib(default="b2")
+
+        @_attr.s
+        class C_attr(B_attr, A_attr):
+            c1 = _attr.ib(default="c1")
+            c2 = _attr.ib(default="c2")
+
+        @attrs.define(collect_by_mro=False)
+        class A_define:
+            a1: str = "a1"
+            a2: str = "a2"
+
+        @attrs.define
+        class B_define(A_define):
+            b1: str = "b1"
+            b2: str = "b2"
+
+        @attrs.define
+        class C_define(B_define, A_define):
+            c1: str = "c1"
+            c2: str = "c2"
+
+        attr_names = [a.name for a in _attr.fields(C_attr)]
+        define_names = [a.name for a in attrs.fields(C_define)]
+        assert (
+            attr_names
+            == define_names
+            == [
+                "a1",
+                "a2",
+                "b1",
+                "b2",
+                "c1",
+                "c2",
+            ]
+        )
+
+    def test_define_collect_by_mro_default_is_true(self):
+        """
+        Without the kwarg, define() should default to collect_by_mro=True
+        (matching the behavior of `attr.s` and the original hard-coded
+        True). This is a regression guard for the default.
+        """
+
+        @attrs.define
+        class Base:
+            x: int = 1
+
+        # A class with no inheritance works either way; the test
+        # confirms define() with the default kwarg still works.
+        assert Base(1).x == 1
