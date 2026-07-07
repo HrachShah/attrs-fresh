@@ -600,7 +600,7 @@ def _rewrite_closure_cells(item, old_cls, new_cls):
     for cell in closure_cells:
         try:
             contents = cell.cell_contents
-        except ValueError:  # noqa: PERF203
+        except ValueError:
             # ValueError: Cell is empty
             continue
 

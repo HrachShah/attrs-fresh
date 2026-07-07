@@ -512,9 +512,11 @@ class TestClosureCellRewriting:
         The parametrized ``slots`` fixture covers both the slots-on and
         slots-off paths; the bug is slots-specific.
         """
+
         def trace(method):
             def wrapper(self, *args, **kwargs):
                 return method(self, *args, **kwargs)
+
             return wrapper
 
         @attr.s(slots=slots)
@@ -537,6 +539,7 @@ class TestClosureCellRewriting:
         def returns_class(method):
             def wrapper(self, *args, **kwargs):
                 return method(self, *args, **kwargs)
+
             return wrapper
 
         @attr.s(slots=slots)
