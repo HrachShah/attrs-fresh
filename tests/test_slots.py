@@ -497,6 +497,56 @@ class TestClosureCellRewriting:
 
         assert D.statmethod() is D
 
+    def test_decorated_method_with_super(self, slots):
+        """
+        Closure cell rewriting recurses through wrapped methods (GH-1038).
+
+        When a method is wrapped by a decorator, the wrapper function's
+        closure cell holds the original (unwrapped) method, which in turn
+        has its own closure cell baking a reference to ``__class__``. The
+        previous closure walker only inspected the outer wrapper, so the
+        inner method's ``__class__`` / no-arg ``super()`` reference kept
+        pointing at the pre-slot-rebuild class and raised ``TypeError`` at
+        call time on slotted attrs classes.
+
+        The parametrized ``slots`` fixture covers both the slots-on and
+        slots-off paths; the bug is slots-specific.
+        """
+        def trace(method):
+            def wrapper(self, *args, **kwargs):
+                return method(self, *args, **kwargs)
+            return wrapper
+
+        @attr.s(slots=slots)
+        class Parent:
+            def f(self):
+                return "Parent.f"
+
+        @attr.s(slots=slots)
+        class Child(Parent):
+            @trace
+            def f(self):
+                return super().f() + "+Child.f"
+
+        # Non-slotted classes were always correct; the regression was only
+        # on slots=True. Assert both paths work.
+        assert Child().f() == "Parent.f+Child.f"
+
+        # And the static case: an unwrapped subclass that mentions
+        # ``__class__`` inside a method that lives behind a decorator.
+        def returns_class(method):
+            def wrapper(self, *args, **kwargs):
+                return method(self, *args, **kwargs)
+            return wrapper
+
+        @attr.s(slots=slots)
+        class WithClass:
+            @returns_class
+            def who(self):
+                return __class__
+
+        assert WithClass().who() is WithClass
+
 
 @pytest.mark.skipif(PYPY, reason="__slots__ only block weakref on CPython")
 def test_not_weakrefable():

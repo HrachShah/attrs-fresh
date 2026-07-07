@@ -556,6 +556,63 @@ def _make_cached_property_getattr(cached_properties, original_getattr, cls):
     )["__getattr__"]
 
 
+def _rewrite_closure_cells(item, old_cls, new_cls):
+    """
+    Rewrite ``__class__`` / ``super()`` closure cells in *item* to point at
+    *new_cls* instead of *old_cls*.
+
+    This is invoked on the class dict of the cloned slotted attrs class so
+    that a method which references ``__class__`` or calls the no-arg
+    ``super()`` keeps working — the compiler bakes a reference to the
+    surrounding class into the method's ``__closure__``, and we just
+    replaced that class with a clone.
+
+    A single pass through the class dict is not enough: a method may be
+    wrapped by a decorator whose closure cell holds the *original* method,
+    and the closure cell that actually points at the class lives on that
+    inner method (see `GH-1038 <https://github.com/python-attrs/attrs/issues/1038>`_).
+    We recurse into cell contents so decorator-wrapped methods get their
+    inner ``__class__`` cell rewritten too.
+
+    Classmethod, staticmethod, and property descriptors are unwrapped
+    before their ``__closure__`` is inspected. The recursion descends
+    into any cell whose contents are themselves a function (the typical
+    decorator-wraps-function case) but does not look inside arbitrary
+    callables — we only want to rewrite closure cells the compiler put
+    there as part of a ``super()`` / ``__class__`` reference, not user
+    data that happens to live in a cell.
+    """
+    if isinstance(item, (classmethod, staticmethod)):
+        # Class- and staticmethods hide their functions inside.
+        # These might need to be rewritten as well.
+        target = item.__func__
+    elif isinstance(item, property):
+        # Workaround for property `super()` shortcut (PY3-only).
+        # There is no universal way for other descriptors.
+        target = item.fget
+    else:
+        target = item
+
+    closure_cells = getattr(target, "__closure__", None)
+    if not closure_cells:  # Catch None or the empty list.
+        return
+
+    for cell in closure_cells:
+        try:
+            contents = cell.cell_contents
+        except ValueError:  # noqa: PERF203
+            # ValueError: Cell is empty
+            continue
+
+        if contents is old_cls:
+            cell.cell_contents = new_cls
+        elif isinstance(contents, types.FunctionType):
+            # Decorator wrapping: the wrapper's cell points at the
+            # underlying function, whose own closure may carry the
+            # ``__class__`` / ``super()`` reference we need to rewrite.
+            _rewrite_closure_cells(contents, old_cls, new_cls)
+
+
 def _frozen_setattrs(self, name, value):
     """
     Attached to frozen classes as __setattr__.
@@ -970,31 +1027,17 @@ class _ClassBuilder:
         # compiler will bake a reference to the class in the method itself
         # as `method.__closure__`.  Since we replace the class with a
         # clone, we rewrite these references so it keeps working.
+        #
+        # The rewrite is recursive because a method may be wrapped by a
+        # decorator (decorator returns a wrapper function whose closure
+        # cell contains the original method; see GH-1038). Plain iteration
+        # over the class dict stops at the wrapper, so the inner method's
+        # baked `__class__` is left pointing at the old class and
+        # ``super()`` raises ``TypeError`` at call time.
         for item in itertools.chain(
             cls.__dict__.values(), additional_closure_functions_to_update
         ):
-            if isinstance(item, (classmethod, staticmethod)):
-                # Class- and staticmethods hide their functions inside.
-                # These might need to be rewritten as well.
-                closure_cells = getattr(item.__func__, "__closure__", None)
-            elif isinstance(item, property):
-                # Workaround for property `super()` shortcut (PY3-only).
-                # There is no universal way for other descriptors.
-                closure_cells = getattr(item.fget, "__closure__", None)
-            else:
-                closure_cells = getattr(item, "__closure__", None)
-
-            if not closure_cells:  # Catch None or the empty list.
-                continue
-            for cell in closure_cells:
-                try:
-                    match = cell.cell_contents is self._cls
-                except ValueError:  # noqa: PERF203
-                    # ValueError: Cell is empty
-                    pass
-                else:
-                    if match:
-                        cell.cell_contents = cls
+            _rewrite_closure_cells(item, self._cls, cls)
         return cls
 
     def add_repr(self, ns):
