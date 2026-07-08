@@ -33,6 +33,7 @@ from .exceptions import (
     DefaultAlreadySetError,
     FrozenInstanceError,
     NotAnAttrsClassError,
+    NotCallableError,
     UnannotatedAttributeError,
 )
 
@@ -3392,15 +3393,26 @@ def and_(*validators):
         validators (~collections.abc.Iterable[typing.Callable]):
             Arbitrary number of validators.
 
+    .. versionchanged:: 26.2
+       Non-callable arguments now raise :class:`TypeError` at the ``and_()``
+       call site, instead of crashing later inside the resulting validator
+       with a confusing ``'str' object is not callable`` (or similar) at
+       attribute-set time.
+
     .. versionadded:: 17.1.0
     """
     vals = []
     for validator in validators:
-        vals.extend(
-            validator._validators
-            if isinstance(validator, _AndValidator)
-            else [validator]
-        )
+        if isinstance(validator, _AndValidator):
+            vals.extend(validator._validators)
+            continue
+        if not callable(validator):
+            msg = (
+                f"`and_` expects validators to be callables, "
+                f"got {type(validator).__name__}: {validator!r}"
+            )
+            raise NotCallableError(msg, validator)
+        vals.append(validator)
 
     return _AndValidator(tuple(vals))
 
