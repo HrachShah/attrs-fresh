@@ -740,6 +740,9 @@ class TestEvolve:
     def test_private(self):
         """
         evolve() acts as `__init__` with regards to private attributes.
+        The public alias is the canonical way to address a field, but the
+        underlying attribute name is also accepted, mirroring the way
+        ``__init__`` accepts the alias.
         """
 
         @attr.s
@@ -748,8 +751,8 @@ class TestEvolve:
 
         assert evolve(C(1), a=2)._a == 2
 
-        with pytest.raises(TypeError):
-            evolve(C(1), _a=2)
+        # Addressing the field by its underlying name is also accepted.
+        assert evolve(C(1), _a=2)._a == 2
 
         with pytest.raises(TypeError):
             evolve(C(1), a=3, _a=2)

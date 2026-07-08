@@ -636,7 +636,17 @@ def evolve(*args, **changes):
             continue
         attr_name = a.name  # To deal with private attributes.
         init_name = a.alias
-        if init_name not in changes:
+        # Accept either the init alias or the (possibly name-mangled)
+        # attribute name. The alias is the public way to address a
+        # field, but if a caller uses the attribute's underlying name
+        # we should still recognize it rather than crash with a
+        # ``got an unexpected keyword argument`` TypeError from
+        # ``__init__``.
+        if init_name in changes:
+            continue
+        if attr_name in changes:
+            changes[init_name] = changes.pop(attr_name)
+        else:
             changes[init_name] = getattr(inst, attr_name)
 
     return cls(**changes)
