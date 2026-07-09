@@ -6,6 +6,7 @@ Commonly useful validators.
 
 import operator
 import re
+import types
 
 from contextlib import contextmanager
 from re import Pattern
@@ -37,6 +38,29 @@ __all__ = [
     "or_",
     "set_disabled",
 ]
+
+
+def _is_valid_instanceof_target(target):
+    """Return True if *target* is acceptable as the target of an instance_of
+    validator -- either a class, a ``types.UnionType`` of classes, or a
+    tuple of classes.
+
+    Mirrors the restriction that ``isinstance`` itself enforces, so a bad
+    target surfaces a clean error at validator construction time rather
+    than the cryptic ``TypeError: isinstance() arg 2 must be a type, a tuple
+    of types, or a union`` at validation time.
+    """
+    # `type` here is the built-in: we want every element of a Union /
+    # tuple target to also be a real class. Using a local alias keeps
+    # the intent explicit and avoids shadowing the parameter.
+    _type = type
+    if isinstance(target, _type):
+        return True
+    if isinstance(target, types.UnionType):
+        return all(isinstance(t, _type) for t in target.__args__)
+    if isinstance(target, tuple):
+        return all(isinstance(t, _type) for t in target)
+    return False
 
 
 def set_disabled(disabled):
@@ -121,9 +145,21 @@ def instance_of(type):
 
     Raises:
         TypeError:
+            If *type* is not a class, a tuple of classes, or a
+            ``types.UnionType`` of classes. The error fires at validator
+            construction time so the call site is named in the traceback
+            rather than buried in the eventual ``isinstance`` call.
+
+        TypeError:
             With a human readable error message, the attribute (of type
             `attrs.Attribute`), the expected type, and the value it got.
     """
+    if not _is_valid_instanceof_target(type):
+        raise TypeError(
+            f"instance_of() requires a type, a tuple of types, or a "
+            f"types.UnionType; got {type!r} (type {type.__class__.__name__}).",
+            type,
+        )
     return _InstanceOfValidator(type)
 
 

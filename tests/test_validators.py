@@ -163,6 +163,52 @@ class TestInstanceOf:
         v = instance_of(int)
         assert ("<instance_of validator for type <class 'int'>>") == repr(v)
 
+    @pytest.mark.parametrize(
+        "bad_type",
+        [
+            "int",
+            42,
+            3.14,
+            None,
+            [int],
+            {"a": int},
+            {int},
+            (int, "str"),  # tuple, but contains a non-type
+            (1, 2, 3),
+            b"int",
+        ],
+    )
+    def test_rejects_non_type(self, bad_type):
+        """
+        ``instance_of(<not a type>)`` raises a clear ``TypeError`` at
+        validator construction time, naming the bad value and its class.
+
+        Without the check, the bad type is accepted and only surfaces
+        later as ``TypeError: isinstance() arg 2 must be a type, a tuple
+        of types, or a union`` at the first call site -- which is
+        usually several frames away from where the validator was built.
+        """
+        with pytest.raises(TypeError, match="instance_of\\(\\) requires a type"):
+            instance_of(bad_type)
+
+    def test_accepts_tuple_of_types(self):
+        """
+        A tuple whose elements are all classes is still accepted, as
+        before. The existing tuple path keeps working.
+        """
+        v = instance_of((int, str))
+        v(None, simple_attr("test"), 42)
+        v(None, simple_attr("test"), "42")
+
+    def test_accepts_union_type(self):
+        """
+        ``types.UnionType`` (the runtime form of ``int | str``) is a
+        valid ``isinstance`` target, so we accept it.
+        """
+        v = instance_of(int | str)
+        v(None, simple_attr("test"), 42)
+        v(None, simple_attr("test"), "42")
+
 
 class TestMatchesRe:
     """
