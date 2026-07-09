@@ -971,6 +971,35 @@ class TestLtLeGeGt:
         assert repr(nv) == f"<Validator for x {nv.compare_op} {23}>"
 
 
+    @pytest.mark.parametrize("v", [lt, le, ge, gt])
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            None,  # NoneType: '<' not supported
+            "string",  # str: '<' not supported
+            complex(1, 2),  # complex vs int: not supported
+            (1, 2),  # tuple vs int: not supported
+        ],
+    )
+    def test_uncomparable_raises_value_error(self, v, bad):
+        """
+        Comparing a value that cannot be ordered against the bound raises
+        ``ValueError`` (with the same message shape as the existing
+        out-of-range case) instead of a bare ``TypeError`` from the
+        ``operator.{lt,le,ge,gt}`` built-in.
+        """
+
+        @attr.s
+        class Tester:
+            value = attr.ib(validator=v(self.BOUND))
+
+        with pytest.raises(
+            ValueError,
+            match=rf"^'value' must be {re.escape(v(self.BOUND).compare_op)} {self.BOUND}: ",
+        ):
+            Tester(bad)
+
+
 class TestMaxLen:
     """
     Tests for `max_len`.

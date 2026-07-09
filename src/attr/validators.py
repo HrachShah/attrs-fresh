@@ -467,7 +467,12 @@ class _NumberValidator:
         """
         We use a callable class to be able to change the ``__repr__``.
         """
-        if not self.compare_func(value, self.bound):
+        try:
+            ok = self.compare_func(value, self.bound)
+        except TypeError:
+            msg = f"'{attr.name}' must be {self.compare_op} {self.bound}: {value}"
+            raise ValueError(msg)
+        if not ok:
             msg = f"'{attr.name}' must be {self.compare_op} {self.bound}: {value}"
             raise ValueError(msg)
 
