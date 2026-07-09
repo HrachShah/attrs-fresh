@@ -970,7 +970,6 @@ class TestLtLeGeGt:
         nv = v(23)
         assert repr(nv) == f"<Validator for x {nv.compare_op} {23}>"
 
-
     @pytest.mark.parametrize("v", [lt, le, ge, gt])
     @pytest.mark.parametrize(
         "bad",
