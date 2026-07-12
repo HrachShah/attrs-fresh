@@ -1,0 +1,1 @@
+`attrs.validators._subclass_of` now raises a clear `TypeError` that names the attribute, the expected type, and the offending value's type when passed a non-class (e.g. an int or a string), instead of leaking the bare built-in `TypeError: issubclass() arg 1 must be a class`.

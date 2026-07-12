@@ -1138,6 +1138,33 @@ class TestSubclassOf:
         assert ("<subclass_of validator for type <class 'int'>>") == repr(v)
 
 
+    def test_fail_on_non_class(self):
+        """
+        If the value is not a class at all, raise the standard validator
+        TypeError with the offending value's type and value rather than a
+        bare ``TypeError: issubclass() arg 1 must be a class`` from the
+        built-in.
+        """
+        v = _subclass_of(int)
+        a = simple_attr("test")
+        for bad in (42, "int", [], 1.5, object()):
+            with pytest.raises(TypeError) as e:
+                v(None, a, bad)
+            assert (
+                f"'test' must be a subclass of <class 'int'> (got {bad!r} that is a {type(bad).__name__}).",
+                a,
+                int,
+                bad,
+            ) == e.value.args
+
+    def test_repr(self):
+        """
+        Returned validator has a useful `__repr__`.
+        """
+        v = _subclass_of(int)
+        assert ("<subclass_of validator for type <class 'int'>>") == repr(v)
+
+
 class TestNot_:
     """
     Tests for `not_`.

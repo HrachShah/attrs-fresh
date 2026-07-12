@@ -601,6 +601,18 @@ class _SubclassOfValidator:
         """
         We use a callable class to be able to change the ``__repr__``.
         """
+        # `issubclass` raises a bare `TypeError: issubclass() arg 1 must be
+        # a class` if ``value`` is not a class object, which leaks the
+        # built-in error and gives the user no context about which
+        # attribute and validator triggered the check. Detect the
+        # non-class case here and raise the validator's normal,
+        # descriptive TypeError instead.
+        if not isinstance(value, type):
+            msg = (
+                f"'{attr.name}' must be a subclass of {self.type!r} "
+                f"(got {value!r} that is a {type(value).__name__})."
+            )
+            raise TypeError(msg, attr, self.type, value)
         if not issubclass(value, self.type):
             msg = f"'{attr.name}' must be a subclass of {self.type!r} (got {value!r})."
             raise TypeError(
