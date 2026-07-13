@@ -343,7 +343,21 @@ class _DeepIterable:
         if self.iterable_validator is not None:
             self.iterable_validator(inst, attr, value)
 
-        for member in value:
+        # `for member in value` raises a bare `TypeError: 'X' object is not
+        # iterable` if ``value`` is not iterable, which leaks the built-in
+        # error and gives the user no context about which attribute and
+        # validator triggered the check. Detect the non-iterable case here
+        # and raise the validator's normal, descriptive TypeError instead.
+        try:
+            value_iter = iter(value)
+        except TypeError:
+            msg = (
+                f"'{attr.name}' must be iterable (got {value!r} that is a "
+                f"{type(value).__name__})."
+            )
+            raise TypeError(msg, attr, value)
+
+        for member in value_iter:
             self.member_validator(inst, attr, member)
 
     def __repr__(self):
@@ -397,7 +411,21 @@ class _DeepMapping:
         if self.mapping_validator is not None:
             self.mapping_validator(inst, attr, value)
 
-        for key in value:
+        # `for key in value` raises a bare `TypeError: 'X' object is not
+        # iterable` if ``value`` is not iterable, which leaks the built-in
+        # error and gives the user no context about which attribute and
+        # validator triggered the check. Detect the non-iterable case here
+        # and raise the validator's normal, descriptive TypeError instead.
+        try:
+            value_iter = iter(value)
+        except TypeError:
+            msg = (
+                f"'{attr.name}' must be a mapping (got {value!r} that is a "
+                f"{type(value).__name__})."
+            )
+            raise TypeError(msg, attr, value)
+
+        for key in value_iter:
             if self.key_validator is not None:
                 self.key_validator(inst, attr, key)
             if self.value_validator is not None:

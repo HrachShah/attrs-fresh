@@ -1,0 +1,1 @@
+`attrs.validators.deep_iterable` and `attrs.validators.deep_mapping` now raise a descriptive `TypeError` that names the attribute, the offending value, and the expected shape ("must be iterable" / "must be a mapping") when the value passed to the validator is not iterable / not a mapping, instead of leaking the bare built-in `TypeError: 'X' object is not iterable`.

@@ -574,6 +574,20 @@ class TestDeepIterable:
         with pytest.raises(TypeError):
             v(None, a, [42, "42"])
 
+    def test_fail_non_iterable_value(self, member_validator):
+        """
+        Raise a descriptive TypeError that names the attribute when the
+        value is not iterable, instead of leaking the bare built-in
+        ``TypeError: 'X' object is not iterable`` message.
+        """
+        v = deep_iterable(member_validator)
+        a = simple_attr("test")
+        with pytest.raises(TypeError) as e:
+            v(None, a, 42)
+        assert "'test' must be iterable" in e.value.args[0]
+        assert "got 42" in e.value.args[0]
+        assert "int" in e.value.args[0]
+
     def test_repr_member_only(self):
         """
         Returned validator has a useful `__repr__`
@@ -740,6 +754,22 @@ class TestDeepMapping:
         a = simple_attr("test")
         with pytest.raises(TypeError):
             v(None, a, {"a": "6", "b": 7})
+
+    def test_fail_non_mapping_value(self):
+        """
+        Raise a descriptive TypeError that names the attribute when the
+        value is not a mapping, instead of leaking the bare built-in
+        ``TypeError: 'X' object is not iterable`` message.
+        """
+        key_validator = instance_of(str)
+        value_validator = instance_of(int)
+        v = deep_mapping(key_validator, value_validator)
+        a = simple_attr("test")
+        with pytest.raises(TypeError) as e:
+            v(None, a, 42)
+        assert "'test' must be a mapping" in e.value.args[0]
+        assert "got 42" in e.value.args[0]
+        assert "int" in e.value.args[0]
 
     def test_repr(self):
         """
