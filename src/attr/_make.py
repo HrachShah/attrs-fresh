@@ -1357,6 +1357,15 @@ def attrs(
     *never* go away, though).
 
     Args:
+        collect_by_mro (bool):
+            If True, *attrs* collects attributes from base classes correctly
+            according to the `method resolution order
+            <https://docs.python.org/3/howto/mro.html>`_. If False, *attrs*
+            will mimic the (wrong) behavior of `dataclasses` and :pep:`681`.
+
+            See also `issue #428
+            <https://github.com/python-attrs/attrs/issues/428>`_.
+
         repr_ns (str):
             When using nested classes, there was no way in Python 2 to
             automatically detect that.  This argument allows to set a custom

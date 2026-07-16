@@ -240,15 +240,6 @@ def define(
             non-keyword-only ``__init__`` parameter names on Python 3.10 and
             later. Ignored on older Python versions.
 
-        collect_by_mro (bool):
-            If True, *attrs* collects attributes from base classes correctly
-            according to the `method resolution order
-            <https://docs.python.org/3/howto/mro.html>`_. If False, *attrs*
-            will mimic the (wrong) behavior of `dataclasses` and :pep:`681`.
-
-            See also `issue #428
-            <https://github.com/python-attrs/attrs/issues/428>`_.
-
         force_kw_only (bool):
             A back-compat flag for restoring pre-25.4.0 behavior.  If True and
             ``kw_only=True``, all attributes are made keyword-only, including
