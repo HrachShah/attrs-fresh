@@ -295,16 +295,12 @@ def astuple(
             elif issubclass(value_type, (tuple, list, set, frozenset)):
                 cf = v.__class__ if retain is True else list
                 items = [
-                    (
-                        astuple(
-                            j,
-                            recurse=True,
-                            filter=filter,
-                            tuple_factory=tuple_factory,
-                            retain_collection_types=retain,
-                        )
-                        if has(j.__class__)
-                        else j
+                    _astuple_anything(
+                        j,
+                        is_key=False,
+                        filter=filter,
+                        tuple_factory=tuple_factory,
+                        retain_collection_types=retain,
                     )
                     for j in v
                 ]
@@ -321,27 +317,19 @@ def astuple(
                 rv.append(
                     df(
                         (
-                            (
-                                astuple(
-                                    kk,
-                                    recurse=True,
-                                    filter=filter,
-                                    tuple_factory=tuple_factory,
-                                    retain_collection_types=retain,
-                                )
-                                if has(kk.__class__)
-                                else kk
+                            _astuple_anything(
+                                kk,
+                                is_key=True,
+                                filter=filter,
+                                tuple_factory=tuple_factory,
+                                retain_collection_types=retain,
                             ),
-                            (
-                                astuple(
-                                    vv,
-                                    recurse=True,
-                                    filter=filter,
-                                    tuple_factory=tuple_factory,
-                                    retain_collection_types=retain,
-                                )
-                                if has(vv.__class__)
-                                else vv
+                            _astuple_anything(
+                                vv,
+                                is_key=False,
+                                filter=filter,
+                                tuple_factory=tuple_factory,
+                                retain_collection_types=retain,
                             ),
                         )
                         for kk, vv in v.items()
@@ -353,6 +341,72 @@ def astuple(
             rv.append(v)
 
     return rv if tuple_factory is list else tuple_factory(rv)
+
+
+def _astuple_anything(
+    val,
+    is_key,
+    filter,
+    tuple_factory,
+    retain_collection_types,
+):
+    """Convert nested values using the same recursion rules as ``astuple``."""
+    val_type = type(val)
+    if val_type in _ATOMIC_TYPES:
+        return val
+    if has(val_type):
+        return astuple(
+            val,
+            recurse=True,
+            filter=filter,
+            tuple_factory=tuple_factory,
+            retain_collection_types=retain_collection_types,
+        )
+    if issubclass(val_type, (tuple, list, set, frozenset)):
+        if retain_collection_types:
+            collection_factory = val_type
+        elif is_key:
+            collection_factory = tuple
+        else:
+            collection_factory = list
+        items = [
+            _astuple_anything(
+                item,
+                is_key=False,
+                filter=filter,
+                tuple_factory=tuple_factory,
+                retain_collection_types=retain_collection_types,
+            )
+            for item in val
+        ]
+        try:
+            return collection_factory(items)
+        except TypeError:
+            if not issubclass(collection_factory, tuple):
+                raise
+            return collection_factory(*items)
+    if issubclass(val_type, dict):
+        dictionary_factory = val_type if retain_collection_types else dict
+        return dictionary_factory(
+            (
+                _astuple_anything(
+                    key,
+                    is_key=True,
+                    filter=filter,
+                    tuple_factory=tuple_factory,
+                    retain_collection_types=retain_collection_types,
+                ),
+                _astuple_anything(
+                    item,
+                    is_key=False,
+                    filter=filter,
+                    tuple_factory=tuple_factory,
+                    retain_collection_types=retain_collection_types,
+                ),
+            )
+            for key, item in val.items()
+        )
+    return val
 
 
 def has(cls):
