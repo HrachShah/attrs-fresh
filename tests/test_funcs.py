@@ -516,6 +516,58 @@ class TestAsTuple:
         assert type(result[0]) is Int
         assert type(result[1][0]) is Int
 
+    @pytest.mark.parametrize("mapping_type", MAPPING_TYPES)
+    def test_dicts_filter_applies_to_values(self, mapping_type):
+        """
+        `astuple`'s dict branch forwards *filter* to the recursive call so a
+        user-supplied filter that drops one of an inner attrs class's
+        attributes is honored on attrs instances reached through dict values
+        (and dict keys), matching the behavior already shipped for list /
+        tuple / set values.
+
+        Regression: prior to the fix, the dict branch called
+        ``astuple(v, tuple_factory=..., retain_collection_types=...)`` and
+        never threaded the caller's ``filter`` through, so a filter that
+        removed one of ``v``'s fields was silently dropped for dict values
+        even though the same filter was honored on list values.
+        """
+
+        @attr.s
+        class Inner:
+            x = attr.ib()
+            y = attr.ib()
+
+        @attr.s
+        class Outer:
+            items = attr.ib()
+
+        # The user-supplied filter is honored at every level: at the
+        # top level it must keep the `items` attribute (otherwise the
+        # whole branch is dropped), and at the inner level it must keep
+        # only the `x` field so the dict-value `Inner` serializes to
+        # `(1,)` rather than `(1, 2)`. Without the fix the inner call
+        # forgot to forward `filter`, so the inner value kept `y`.
+        def keep_outer_items_and_inner_x(a, v):
+            return a.name in ("items", "x")
+
+        def keep_outer_items_and_drop_all_inner(a, v):
+            return a.name == "items"
+
+        # Filter that keeps one field: dict-value Inner should drop y, so
+        # the serialized value is `(1,)` not `(1, 2)`.
+        out = astuple(Outer(items=mapping_type(k=Inner(1, 2))), filter=keep_outer_items_and_inner_x)
+        assert out == (mapping_type(k=(1,)),)
+
+        # Filter that drops every inner field: nothing survives inside
+        # the dict value, so the inner tuple is empty.
+        out = astuple(Outer(items=mapping_type(k=Inner(1, 2))), filter=keep_outer_items_and_drop_all_inner)
+        assert out == (mapping_type(k=()),)
+
+        # Sanity: same filter on a list value has always worked, so this
+        # case is here to confirm we did not regress the working branch.
+        out = astuple(Outer(items=[Inner(1, 2)]), filter=keep_outer_items_and_inner_x)
+        assert out == ([(1,)],)
+
 
 class TestHas:
     """
