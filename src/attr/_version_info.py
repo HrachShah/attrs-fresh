@@ -53,7 +53,7 @@ class VersionInfo:
         except ValueError as e:
             raise ValueError(f"Invalid version string: {s!r}") from e
 
-        if min(year, minor, micro) < 0:
+        if min(year, minor, micro) < 0 or any(not part.isdigit() for part in v[:3]):
             raise ValueError(f"Invalid version string: {s!r}")
 
         return cls(year=year, minor=minor, micro=micro, releaselevel=v[3])
