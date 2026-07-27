@@ -27,7 +27,9 @@ class TestVersionInfo:
             == VersionInfo._from_version_string("19.2.0.dev0").releaselevel
         )
 
-    @pytest.mark.parametrize("value", ["19.2", "19.2.0.dev0.extra", "19.two.0"])
+    @pytest.mark.parametrize(
+        "value", ["19.2", "19.2.0.dev0.extra", "19.two.0", "19.-2.0"]
+    )
     def test_invalid_version_string(self, value):
         with pytest.raises(ValueError, match="Invalid version string"):
             VersionInfo._from_version_string(value)
