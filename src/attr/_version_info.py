@@ -43,6 +43,8 @@ class VersionInfo:
         v = s.split(".")
         if len(v) == 3:
             v.append("final")
+        elif not v[3]:
+            raise ValueError(f"Invalid version string: {s!r}")
 
         return cls(
             year=int(v[0]), minor=int(v[1]), micro=int(v[2]), releaselevel=v[3]
