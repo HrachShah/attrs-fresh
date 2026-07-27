@@ -41,12 +41,22 @@ class VersionInfo:
         Parse *s* and return a _VersionInfo.
         """
         v = s.split(".")
+        if len(v) not in (3, 4):
+            raise ValueError(f"Invalid version string: {s!r}")
         if len(v) == 3:
             v.append("final")
+        elif not v[3]:
+            raise ValueError(f"Invalid version string: {s!r}")
 
-        return cls(
-            year=int(v[0]), minor=int(v[1]), micro=int(v[2]), releaselevel=v[3]
-        )
+        try:
+            year, minor, micro = (int(part) for part in v[:3])
+        except ValueError as e:
+            raise ValueError(f"Invalid version string: {s!r}") from e
+
+        if min(year, minor, micro) < 0 or any(not part.isdigit() for part in v[:3]):
+            raise ValueError(f"Invalid version string: {s!r}")
+
+        return cls(year=year, minor=minor, micro=micro, releaselevel=v[3])
 
     def _ensure_tuple(self, other):
         """
