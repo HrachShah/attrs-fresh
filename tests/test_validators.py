@@ -405,6 +405,13 @@ class TestOptional:
 
         assert repr_s == repr(v)
 
+    def test_rejects_non_callable_validator(self, validator):
+        with pytest.raises(NotCallableError) as e:
+            optional("not a validator")
+
+        assert "optional" in str(e.value)
+        assert "not a validator" in str(e.value)
+
 
 class TestIn_:
     """

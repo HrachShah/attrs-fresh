@@ -228,6 +228,12 @@ def optional(validator):
     """
     if isinstance(validator, (list, tuple)):
         return _OptionalValidator(_AndValidator(validator))
+    if not callable(validator):
+        msg = (
+            f"`optional` expects a validator to be callable, "
+            f"got {type(validator).__name__}: {validator!r}"
+        )
+        raise NotCallableError(msg, validator)
 
     return _OptionalValidator(validator)
 
