@@ -741,10 +741,27 @@ def or_(*validators):
             message listing all the wrapped validators and the value that
             failed all of them.
 
+    .. versionchanged:: 26.2
+       Non-callable arguments now raise :class:`TypeError` at the ``or_()``
+       call site. Previously, ``or_`` accepted any object and the resulting
+       validator silently passed (the inner ``try/except Exception`` swallows
+       the ``TypeError: 'str' object is not callable`` raised by calling the
+       bad argument), so a typo like ``or_(instance_of(int), 'not_callable')``
+       would always succeed regardless of the value.
+
     .. versionadded:: 24.1.0
     """
     vals = []
     for v in validators:
-        vals.extend(v.validators if isinstance(v, _OrValidator) else [v])
+        if isinstance(v, _OrValidator):
+            vals.extend(v.validators)
+            continue
+        if not callable(v):
+            msg = (
+                f"`or_` expects validators to be callables, "
+                f"got {type(v).__name__}: {v!r}"
+            )
+            raise NotCallableError(msg, v)
+        vals.append(v)
 
     return _OrValidator(tuple(vals))

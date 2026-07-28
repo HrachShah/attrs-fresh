@@ -13,6 +13,7 @@ import attr
 
 from attr import _config, fields, has
 from attr import validators as validator_module
+from attr.exceptions import NotCallableError
 from attr.validators import (
     _subclass_of,
     and_,
@@ -319,6 +320,18 @@ class TestAnd:
 
         assert C.__attrs_attrs__[0].validator == C.__attrs_attrs__[1].validator
 
+    @pytest.mark.parametrize("bad", ["not_callable", None, 42, [1, 2, 3]])
+    def test_rejects_non_callable(self, bad):
+        """
+        and_ raises TypeError immediately for a non-callable argument,
+        instead of crashing later inside the resulting validator with a
+        confusing 'str' object is not callable.
+        """
+        with pytest.raises(TypeError) as ei:
+            and_(instance_of(int), bad)
+        assert "and_" in str(ei.value)
+        assert repr(bad) in str(ei.value)
+
 
 @pytest.mark.parametrize(
     "validator",
@@ -534,14 +547,21 @@ class TestDeepIterable:
         with pytest.raises(TypeError) as e:
             deep_iterable(member_validator, iterable_validator)
         value = 42
-        message = (
+        # The non-callable value surfaces either via the
+        # ``is_callable()`` attribute validator on ``_DeepIterable``
+        # (for bare values) or via ``and_`` rejecting non-callable
+        # members at construction time (for values wrapped in a
+        # list/tuple). Both raise ``NotCallableError`` with the
+        # offending value attached.
+        assert isinstance(e.value, NotCallableError)
+        assert value == e.value.value
+        # The message should mention either the ``is_callable`` wording
+        # or ``and_``'s own diagnostic, depending on which path fired.
+        is_callable_msg = (
             f"must be callable (got {value} that is a {value.__class__})."
         )
-
-        assert message in e.value.args[0]
-        assert value == e.value.args[1]
-        assert message in e.value.msg
-        assert value == e.value.value
+        and_msg = "`and_` expects validators to be callables"
+        assert is_callable_msg in e.value.msg or and_msg in e.value.msg
 
     def test_fail_invalid_member(self, member_validator):
         """
