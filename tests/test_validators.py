@@ -420,7 +420,6 @@ class TestOptional:
         assert "and_" in str(e.value)
         assert repr(bad) in str(e.value)
 
-
 class TestIn_:
     """
     Tests for `in_`.
