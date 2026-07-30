@@ -227,6 +227,7 @@ def optional(validator):
     .. versionchanged:: 23.1.0 *validator* can also be a tuple of validators.
     """
     if isinstance(validator, (list, tuple)):
+        and_(*validator)
         return _OptionalValidator(_AndValidator(validator))
     if not callable(validator):
         msg = (

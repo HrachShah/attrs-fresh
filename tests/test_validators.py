@@ -412,6 +412,14 @@ class TestOptional:
         assert "optional" in str(e.value)
         assert "not a validator" in str(e.value)
 
+    @pytest.mark.parametrize("bad", ["not a validator", None, 42])
+    def test_rejects_non_callable_validator_in_sequence(self, validator, bad):
+        with pytest.raises(NotCallableError) as e:
+            optional([instance_of(int), bad])
+
+        assert "and_" in str(e.value)
+        assert repr(bad) in str(e.value)
+
 
 class TestIn_:
     """
