@@ -758,6 +758,9 @@ def or_(*validators):
 
     .. versionadded:: 24.1.0
     """
+    if not validators:
+        raise ValueError("`or_` expects at least one validator")
+
     vals = []
     for v in validators:
         if isinstance(v, _OrValidator):

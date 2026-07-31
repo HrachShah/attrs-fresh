@@ -333,6 +333,12 @@ class TestAnd:
         assert repr(bad) in str(ei.value)
 
 
+
+def test_or_rejects_empty_validator_list():
+    with pytest.raises(ValueError, match="at least one validator"):
+        validator_module.or_()
+
+
 @pytest.mark.parametrize(
     "validator",
     [
