@@ -3401,6 +3401,9 @@ def and_(*validators):
 
     .. versionadded:: 17.1.0
     """
+    if not validators:
+        raise ValueError("`and_` expects at least one validator")
+
     vals = []
     for validator in validators:
         if isinstance(validator, _AndValidator):

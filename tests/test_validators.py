@@ -334,6 +334,11 @@ class TestAnd:
 
 
 
+def test_and_rejects_empty_validator_list():
+    with pytest.raises(ValueError, match="at least one validator"):
+        and_()
+
+
 def test_or_rejects_empty_validator_list():
     with pytest.raises(ValueError, match="at least one validator"):
         validator_module.or_()
