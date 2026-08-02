@@ -1363,6 +1363,13 @@ class TestNot_:
             "(got <class 'str'>)."
         ) == e.value.args[0]
 
+    @pytest.mark.parametrize("bad", ["not_callable", None, 42, [1, 2, 3]])
+    def test_rejects_non_callable_validator(self, bad):
+        with pytest.raises(NotCallableError) as ei:
+            not_(bad)
+        assert "not_" in str(ei.value)
+        assert repr(bad) in str(ei.value)
+
 
 class TestOr:
     def test_in_all(self):

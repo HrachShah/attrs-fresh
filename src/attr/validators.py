@@ -697,6 +697,13 @@ def not_(validator, *, msg=None, exc_types=(ValueError, TypeError)):
 
     .. versionadded:: 22.2.0
     """
+    if not callable(validator):
+        msg = (
+            f"`not_` expects a validator to be callable, "
+            f"got {type(validator).__name__}: {validator!r}"
+        )
+        raise NotCallableError(msg, validator)
+
     try:
         exc_types = tuple(exc_types)
     except TypeError:
