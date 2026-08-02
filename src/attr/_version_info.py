@@ -40,6 +40,8 @@ class VersionInfo:
         """
         Parse *s* and return a _VersionInfo.
         """
+        if not isinstance(s, str):
+            raise TypeError("version must be a string")
         v = s.split(".")
         if len(v) not in (3, 4):
             raise ValueError(f"Invalid version string: {s!r}")

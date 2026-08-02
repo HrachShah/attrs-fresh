@@ -18,6 +18,11 @@ class TestVersionInfo:
         """
         assert vi == VersionInfo._from_version_string("19.2.0")
 
+    @pytest.mark.parametrize("value", [None, 19, b"19.2.0"])
+    def test_non_string_version_is_rejected(self, value):
+        with pytest.raises(TypeError, match="version must be a string"):
+            VersionInfo._from_version_string(value)
+
     def test_suffix_is_preserved(self):
         """
         If there is a suffix, it's preserved.
