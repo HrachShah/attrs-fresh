@@ -47,6 +47,8 @@ class VersionInfo:
             raise ValueError(f"Invalid version string: {s!r}")
         if len(v) == 3:
             v.append("final")
+        elif not v[3]:
+            raise ValueError(f"Invalid version string: {s!r}")
 
         try:
             year, minor, micro = (int(part) for part in v[:3])
