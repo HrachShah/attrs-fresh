@@ -167,11 +167,14 @@ def to_bool(val):
 
     if isinstance(val, str):
         val = val.lower()
-
-    if val in (True, "true", "t", "yes", "y", "on", "1", 1):
-        return True
-    if val in (False, "false", "f", "no", "n", "off", "0", 0):
-        return False
+        if val in ("true", "t", "yes", "y", "on", "1"):
+            return True
+        if val in ("false", "f", "no", "n", "off", "0"):
+            return False
+    elif isinstance(val, bool):
+        return val
+    elif type(val) is int and val in (0, 1):
+        return bool(val)
 
     msg = f"Cannot convert value to bool: {val!r}"
     raise ValueError(msg)

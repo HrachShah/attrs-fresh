@@ -349,6 +349,13 @@ class TestToBool:
         with pytest.raises(ValueError, match="Cannot convert value to bool"):
             to_bool([])
 
+    def test_rejects_integer_subclasses(self):
+        class One(int):
+            pass
+
+        with pytest.raises(ValueError, match="Cannot convert value to bool"):
+            to_bool(One(1))
+
     def test_truthy(self):
         """
         Fails if truthy values are incorrectly converted.

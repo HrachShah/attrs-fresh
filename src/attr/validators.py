@@ -561,6 +561,8 @@ def max_len(length):
 
     .. versionadded:: 21.3.0
     """
+    if not isinstance(length, int) or isinstance(length, bool) or length < 0:
+        raise ValueError("max_len length must be a non-negative integer")
     return _MaxLengthValidator(length)
 
 
@@ -590,6 +592,8 @@ def min_len(length):
 
     .. versionadded:: 22.1.0
     """
+    if not isinstance(length, int) or isinstance(length, bool) or length < 0:
+        raise ValueError("min_len length must be a non-negative integer")
     return _MinLengthValidator(length)
 
 

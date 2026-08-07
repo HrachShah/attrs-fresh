@@ -1023,6 +1023,11 @@ class TestMaxLen:
         """
         assert repr(max_len(23)) == "<max_len validator for 23>"
 
+    @pytest.mark.parametrize("length", [-1, 1.5, True, "4"])
+    def test_rejects_invalid_length(self, length):
+        with pytest.raises(ValueError, match="max_len length"):
+            max_len(length)
+
 
 class TestMinLen:
     """
@@ -1093,6 +1098,11 @@ class TestMinLen:
         __repr__ is meaningful.
         """
         assert repr(min_len(23)) == "<min_len validator for 23>"
+
+    @pytest.mark.parametrize("length", [-1, 1.5, True, "2"])
+    def test_rejects_invalid_length(self, length):
+        with pytest.raises(ValueError, match="min_len length"):
+            min_len(length)
 
 
 class TestSubclassOf:
