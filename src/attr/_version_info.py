@@ -50,6 +50,9 @@ class VersionInfo:
         elif not v[3]:
             raise ValueError(f"Invalid version string: {s!r}")
 
+        if not all(part.isascii() and part.isdecimal() for part in v[:3]):
+            raise ValueError(f"Invalid version string: {s!r}")
+
         try:
             year, minor, micro = (int(part) for part in v[:3])
         except ValueError as e:
