@@ -163,6 +163,16 @@ class TestInstanceOf:
         v = instance_of(int)
         assert ("<instance_of validator for type <class 'int'>>") == repr(v)
 
+    @pytest.mark.parametrize("bad_type", ["int", 42, None, [int], (int, "str")])
+    def test_rejects_invalid_targets_at_construction(self, bad_type):
+        with pytest.raises(TypeError, match=r"instance_of\(\) requires a type"):
+            instance_of(bad_type)
+
+    def test_accepts_union_type_target(self):
+        validator = instance_of(int | str)
+        validator(None, simple_attr("value"), "text")
+
+
 
 class TestMatchesRe:
     """

@@ -6,6 +6,7 @@ Commonly useful validators.
 
 import operator
 import re
+import types
 
 from contextlib import contextmanager
 from re import Pattern
@@ -37,6 +38,20 @@ __all__ = [
     "or_",
     "set_disabled",
 ]
+
+
+def _is_valid_instanceof_target(target):
+    if isinstance(target, type):
+        return True
+
+    union_type = getattr(types, "UnionType", ())
+    if union_type and isinstance(target, union_type):
+        return all(_is_valid_instanceof_target(arg) for arg in target.__args__)
+
+    if isinstance(target, tuple):
+        return all(_is_valid_instanceof_target(item) for item in target)
+
+    return False
 
 
 def set_disabled(disabled):
@@ -124,6 +139,13 @@ def instance_of(type):
             With a human readable error message, the attribute (of type
             `attrs.Attribute`), the expected type, and the value it got.
     """
+    if not _is_valid_instanceof_target(type):
+        raise TypeError(
+            "instance_of() requires a type, a tuple of types, or a "
+            f"types.UnionType; got {type!r} (type {type.__class__.__name__}).",
+            type,
+        )
+
     return _InstanceOfValidator(type)
 
 
